@@ -1,0 +1,2 @@
+https://sourceforge.net/projects/golly/
+Put the contents in this folder, so that this folder contains golly, bgolly, Patterns, etc.
