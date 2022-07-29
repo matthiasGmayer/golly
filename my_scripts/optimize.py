@@ -20,7 +20,7 @@ def initialize():
     # calculate the cumulative states, the number of states with less than 'index' number of live cells
     last = 1
     cum_state_number.append(last)
-    for k in range(1, height * width):
+    for k in range(1, height * width + 1):
         n = height * width
         last = (n - k + 1) * last // k
         cum_state_number.append(cum_state_number[-1] + last)
@@ -51,20 +51,20 @@ def fill_board_randomly():
     fill_board(state)
 
 
-log2states = math.log2(cum_state_number[-1])
-
-
 def omega(pop):
     """
     Optimization of a state with population "pop"
     """
+    height = g.getheight()
+    width = g.getwidth()
+    num_cells = width * height
     sums = cum_state_number[pop]
     # instead of log2( 1 / (x/total) ), log2(total) - log2(x)
     # bc more numerically stable
-    return log2states - math.log2(sums)
+    return num_cells - math.log2(sums)
 
 
-def get_optimization(pop0, pop1):
+def get_negentropy(pop0, pop1):
     """
     optimization that ocurred, preference ordering is number of cells alive is good.
     """
@@ -75,7 +75,7 @@ fill_board_randomly()
 pop0 = int(g.getpop())
 g.run(2**10)
 pop1 = int(g.getpop())
-optimization = get_optimization(pop0, pop1)
-g.show(str(optimization))
+negentropy = get_negentropy(pop0, pop1)
+g.show(str(negentropy))
 
 g.fit()
