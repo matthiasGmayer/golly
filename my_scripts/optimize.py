@@ -1,10 +1,9 @@
 import golly as g
-from glife import *
 import random
 import math
 
 
-sums_omega = []
+cum_state_number = []
 
 
 def initialize():
@@ -17,18 +16,23 @@ def initialize():
     x0 = -width // 2
     y0 = -height // 2
     g.select([x0, y0, width, height])
+
+    # calculate the cumulative states, the number of states with less than 'index' number of live cells
     last = 1
-    sums_omega.append(last)
+    cum_state_number.append(last)
     for k in range(1, height * width):
         n = height * width
         last = (n - k + 1) * last // k
-        sums_omega.append(sums_omega[-1] + last)
+        cum_state_number.append(cum_state_number[-1] + last)
 
 
 initialize()
 
 
 def fill_board(i):
+    """
+    fill board with the binary representation of 'i'
+    """
     height = g.getheight()
     width = g.getwidth()
     num_cells = width * height
@@ -47,11 +51,16 @@ def fill_board_randomly():
     fill_board(state)
 
 
-log2states = math.log2(sums_omega[-1])
+log2states = math.log2(cum_state_number[-1])
 
 
 def omega(pop):
-    sums = sums_omega[pop]
+    """
+    Optimization of a state with population "pop"
+    """
+    sums = cum_state_number[pop]
+    # instead of log2( 1 / (x/total) ), log2(total) - log2(x)
+    # bc more numerically stable
     return log2states - math.log2(sums)
 
 
@@ -63,21 +72,10 @@ def get_optimization(pop0, pop1):
 
 
 fill_board_randomly()
-# g.show(str(g.getcells([0, 0, 10, 10])))
-g.show(str(g.getxy()))
+pop0 = int(g.getpop())
+g.run(2**10)
+pop1 = int(g.getpop())
+optimization = get_optimization(pop0, pop1)
+g.show(str(optimization))
 
-
-# pop0 = int(g.getpop())
-
-# g.run(2**10)
-
-# pop1 = int(g.getpop())
-# optimization = get_optimization(pop0, pop1)
-
-# g.show(str(optimization))
-
-# g.fit()
-
-# for i in range(10):
-#     g.randfill(50)
-#     g.run(2**15)
+g.fit()
