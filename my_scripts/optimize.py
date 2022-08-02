@@ -120,12 +120,17 @@ def generate_data(file="random_negentropies.dat", runs=1000):
     for i in range(runs):
         g.show(f"{i+1}/{runs}")  # indicate current iteration
         negentropy = run_state_and_get_negentropy()
+        # negentropies.append(get_pop())
         negentropies.append(negentropy)
-    with open(file, "w+") as f:
+    os.makedirs("data")
+    with open(f"data/{file}", "w+") as f:
         f.write("\n".join(map(str, negentropies)))
 
 
+# generate_data(file="ending_populations.dat", runs=1000)
 generate_data(runs=1000)
+
+# print([(i, omega(i)) for i in range(1000) if 7900 <= omega(i) <= 8100])
 
 # fill_board_randomly()
 # g.fit()
