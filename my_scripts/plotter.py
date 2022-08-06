@@ -3,10 +3,10 @@ from scipy import interpolate, optimize
 import numpy as np
 import os
 
-# data = "random_negentropies"
-data = "ending_populations"
+data = "random_negentropies"
+# data = "ending_populations"
 data_file = f"data/{data}.dat"
-os.makedirs("plots")
+# os.makedirs("plots")
 with open(data_file) as file:
     lines = file.read().strip().split("\n")
     negentropies = list(map(float, lines))
@@ -50,7 +50,8 @@ def smooth_cdf(n=10):
 
 
 def interpolation_pdf():
-    x, y = smooth_cdf(n=20)
+    # x, y = smooth_cdf(n=20)
+    x, y = get_cdf()
     ydiff = y[1:] - y[:-1]
     xdiff = x[1:] - x[:-1]
     diff = ydiff / xdiff
@@ -61,5 +62,5 @@ def interpolation_pdf():
     plt.show()
 
 
-# interpolation_pdf()
-histogram()
+interpolation_pdf()
+# histogram()

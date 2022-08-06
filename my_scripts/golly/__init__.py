@@ -570,17 +570,17 @@ def getwidth() -> int:
     Return the width (in cells) of the current universe (0 if unbounded).
     Example: wd = g.getwidth()
     """
-    return 0
+    return 100
 
 
 def getheight() -> int:
     """
     Return the height (in cells) of the current universe (0 if unbounded).
     Example: ht = g.getheight()
-
-    VIEWING COMMANDS
     """
-    return 0
+    return 100
+
+    # VIEWING COMMANDS
 
 
 def setpos(x: str, y: str):

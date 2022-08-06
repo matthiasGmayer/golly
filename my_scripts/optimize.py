@@ -1,14 +1,14 @@
+import importlib
 import golly as g
 import random
 import math
+import numpy as np
 import logging
 import os
-from collections import deque
+import npg
 
-logging_file = "log_optimize.log"
-os.system(f"> {logging_file}")  # wipe logging file
-logging.basicConfig(filename=logging_file)
-logging.getLogger().setLevel(logging.INFO)
+importlib.reload(npg)
+from collections import deque
 
 
 name = "test"
@@ -16,12 +16,19 @@ width = 100
 height = width
 num_cells = width * height
 num_states = 2**num_cells
-rule = f"b3/s23:P{width},{height}"
-g.setrule(rule)
-g.new(name)
-x0 = -width // 2
-y0 = -height // 2
-g.select([x0, y0, width, height])
+npg.start_board(name=name, height=height, width=width, border="T")
+npg.fill_board_with_density(1 / 2)
+# rule = f"b3/s23:P{width},{height}"
+# g.setrule(rule)
+# g.new(name)
+# x0 = -width // 2
+# y0 = -height // 2
+# whole_board = [x0, y0, width, height]
+# xs = range(x0, x0 + width)
+# ys = range(y0, y0 + height)
+# g.select(whole_board)
+# g.fitsel()
+
 
 # calculate the cumulative states, the number of states with less than 'index' number of live cells
 last = 1
@@ -32,22 +39,29 @@ for k in range(1, height * width + 1):
     cum_state_number.append(cum_state_number[-1] + last)
 
 
-def fill_board(i):
-    """
-    fill board with the binary representation of 'i'
-    """
-    binary = f"{i:0{num_cells}b}"
-    for i, s in enumerate(binary):
-        if s == "1":
-            g.setcell(i % width - width // 2, i // height - height // 2, 1)
+# def fill_board(i):
+#     """
+#     fill board with the binary representation of 'i'
+#     """
+#     binary = f"{i:0{num_cells}b}"
+#     for i, s in enumerate(binary):
+#         if s == "1":
+#             g.setcell(i % width - width // 2, i // height - height // 2, 1)
+#
+#
+# def fill_board_randomly():
+#     state = random.randint(0, num_states)
+#     fill_board(state)
+#
+#
+# def fill_board_with_density(chance=1 / 2):
+#     for x in xs:
+#         for y in ys:
+#             if random.random() < chance:
+#                 g.setcell(x, y, 1)
 
 
-def fill_board_randomly():
-    state = random.randint(0, num_states)
-    fill_board(state)
-
-
-def omega(pop):
+def negentropy(pop):
     """
     Optimization of a state with population "pop"
     """
@@ -57,15 +71,11 @@ def omega(pop):
     return num_cells - math.log2(sums)
 
 
-def get_pop():
-    return int(g.getpop())
-
-
-def get_negentropy(pop0, pop1):
+def get_optimization(pop0, pop1):
     """
     optimization that ocurred, preference ordering is number of cells alive is good.
     """
-    return omega(pop1) - omega(pop0)
+    return negentropy(pop1) - negentropy(pop0)
 
 
 def cauchy(list, tol):
@@ -92,13 +102,13 @@ def run_until_converge(
     criterion=lambda l: is_cycling(l),  # or max_not_increasing(l, 10),
 ):
     max_it = max_it // gen_steps
-    initial_population = get_pop()
+    initial_population = npg.get_pop()
     # biggest_negentropy = omega(initial_population)
     last_negentropies = deque()
     for i in range(max_it):
         g.run(gen_steps)
-        population = get_pop()
-        negentropy = get_negentropy(initial_population, population)
+        population = npg.get_pop()
+        negentropy = get_optimization(initial_population, population)
         last_negentropies.append(negentropy)
         if len(last_negentropies) > mem_size:
             last_negentropies.popleft()
@@ -108,11 +118,16 @@ def run_until_converge(
 
 
 def run_state_and_get_negentropy():
-    fill_board_randomly()
-    pop0 = get_pop()
+    npg.fill_board_with_density()
+    # fill_board_randomly()
+    pop0 = npg.get_pop()
     run_until_converge()
-    pop1 = get_pop()
-    return get_negentropy(pop0, pop1)
+    pop1 = npg.get_pop()
+    return get_optimization(pop0, pop1)
+
+
+def gather_entropy_over_run():
+    pass
 
 
 def generate_data(file="random_negentropies.dat", runs=1000):
@@ -120,7 +135,7 @@ def generate_data(file="random_negentropies.dat", runs=1000):
     for i in range(runs):
         g.show(f"{i+1}/{runs}")  # indicate current iteration
         negentropy = run_state_and_get_negentropy()
-        # negentropies.append(get_pop())
+        # negentropies.append(npg.get_pop())
         negentropies.append(negentropy)
     os.makedirs("data")
     with open(f"data/{file}", "w+") as f:
@@ -128,8 +143,7 @@ def generate_data(file="random_negentropies.dat", runs=1000):
 
 
 # generate_data(file="ending_populations.dat", runs=1000)
-generate_data(runs=1000)
-
+# generate_data(runs=1000)
 # print([(i, omega(i)) for i in range(1000) if 7900 <= omega(i) <= 8100])
 
 # fill_board_randomly()
@@ -138,10 +152,12 @@ generate_data(runs=1000)
 # display progress
 # g.autoupdate(True)
 # steps = run_until_converge()
-
+# board = g.getcells(whole_board)
 # g.show(str(steps))
 # pop0 = int(g.getpop())
 # g.run(2**10)
 # pop1 = int(g.getpop())
 # negentropy = get_negentropy(pop0, pop1)
 # g.show(str(negentropy))
+
+# fill_board_with_density(0.5)
