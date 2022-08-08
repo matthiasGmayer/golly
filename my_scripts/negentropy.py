@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import copy
+import pickle
 import npg
 import zlib
 from collections import defaultdict
@@ -35,11 +36,23 @@ class Negentropy:
         self.saved_board = copy.deepcopy(board)
 
     def get_number_states(self, board):
-        raise NotImplemented
+        pass
 
     def __getitem__(self, board):
         num_states = self.get_number_states(board)
         return self.num_cells - math.log2(num_states)
+
+    def save(self, name):
+        fname = f"data/negentropies/{name}"
+        with open(fname, "wb+") as file:
+            pickle.dump(self, file)
+
+
+def load_negentropy(name):
+    fname = f"data/negentropies/{name}"
+    with open(fname, "rb") as file:
+        obj = pickle.load(file)
+    return obj
 
 
 # All have uniform distribution
@@ -93,30 +106,57 @@ class NumberOfCells(Negentropy):
         neg_size = negative_rect[2] * negative_rect[3]
         pos_distr = self.get_distribution(pos_size)
         neg_distr = self.get_distribution(neg_size)
+
+        # does not work bc if one log is 0, that propagates.
+
+        # pos_logs = np.array([math.log2(x) for x in pos_distr])
+        # neg_logs = np.array([math.log2(x) for x in neg_distr])
+        # mults = pos_logs * neg_logs[:, None]
+        # logs = {
+        #     offset: np.product(np.diagonal(mults, offset))
+        #     for offset in range(-neg_size, pos_size + 1)
+        # }
+        # cum_logs = np.cumprod(logs)
+        # self.util_to_log_num_states = cum_logs
+        # print(self.util_to_log_num_states)
+        # self.util_offset = neg_size
+
+        # too slow
         d = defaultdict(int)
         for pi, p in enumerate(pos_distr):
+            npg.log(f"{pi}/{len(pos_distr)}")
             for ni, n in enumerate(neg_distr):
                 d[pi - ni] += p * n
         cum = defaultdict(int)
         maxkey = max(d.keys())
         minkey = min(d.keys())
-        # cum[minkey] = d[minkey]
-        # for i in range(minkey + 1, maxkey + 1):
-        #     cum[i] = cum[i - 1] + d[i]
+        cum[minkey] = d[minkey]
+        for i in range(minkey + 1, maxkey + 1):
+            cum[i] = cum[i - 1] + d[i]
         cum[maxkey] = d[maxkey]
         for i in range(maxkey - 1, minkey - 1, -1):
             cum[i] = cum[i + 1] + d[i]
         self.util_to_num_states = cum
 
-    def get_number_states(self, board):
-        """
-        return negentropy of specified board
-        """
+    # def __getitem__(self, board):
+    #     sup = super().__getitem__(board)
+    #     util = self.get_util(board)
+    #     sup2 = self.num_cells - self.util_to_log_num_states[util + self.util_offset]
+    #     npg.log(sup - sup2)
+    #     return sup2
 
+    def get_util(self, board):
         def get_sub_board(b, x, y, w, h):
             return b[x : x + w, y : y + h]
 
         pos_area = get_sub_board(board, *self.positive_rect)
         neg_area = get_sub_board(board, *self.negative_rect)
         util = np.sum(pos_area) - np.sum(neg_area)
+        return util
+
+    def get_number_states(self, board):
+        """
+        return negentropy of specified board
+        """
+        util = self.get_util(board)
         return self.util_to_num_states[util]

@@ -1,5 +1,6 @@
 import importlib
 import npg
+import os
 
 importlib.reload(npg)
 import negentropy
@@ -14,14 +15,16 @@ from optimize import run_until_converge
 import golly as g
 
 
-def save_best_worst(n, name, negentropy: Negentropy, mem_size=10, load=True):
+def save_best_worst(
+    dir, negentropy: Negentropy, mem_size=10, load=True, save_round=100
+):
     i = 0
     min_opt = max_opt = None, None
-    if load:
-        best_opts = np.load(f"data/{name}_best_opts.npy")
-        worst_opts = np.load(f"data/{name}_worst_opts.npy")
-        best_boards = np.load(f"data/{name}_best_boards.npy")
-        worst_boards = np.load(f"data/{name}_worst_boards.npy")
+    if load and os.path.exists(f"data/{dir}/best_opts.npy"):
+        best_opts = np.load(f"data/{dir}/best_opts.npy")
+        worst_opts = np.load(f"data/{dir}/worst_opts.npy")
+        best_boards = np.load(f"data/{dir}/best_boards.npy")
+        worst_boards = np.load(f"data/{dir}/worst_boards.npy")
     else:
         best_opts = np.array([])
         worst_opts = np.array([])
@@ -31,7 +34,9 @@ def save_best_worst(n, name, negentropy: Negentropy, mem_size=10, load=True):
         i = i + 1
         npg.fill_board_with_density(1 / 2)
         negentropy.save_board()
-        run_until_converge()
+        converged = run_until_converge(negentropy)
+        if not converged:
+            continue
         opt = negentropy.get_optimization()
         if len(best_opts) < mem_size:
             best_opts = np.append(best_opts, opt)
@@ -55,27 +60,33 @@ def save_best_worst(n, name, negentropy: Negentropy, mem_size=10, load=True):
             if max_opt > opt:
                 worst_opts[index] = opt
                 worst_boards[index] = negentropy.saved_board
-        if i % 100 == 0:
-            np.save(f"data/{name}_best_opts", best_opts)
-            np.save(f"data/{name}_worst_opts", worst_opts)
-            np.save(f"data/{name}_worst_boards", worst_boards)
-            np.save(f"data/{name}_best_boards", best_boards)
-            break
+        if i % save_round == 0:
+            np.save(f"data/{dir}/best_opts", best_opts)
+            np.save(f"data/{dir}/worst_opts", worst_opts)
+            np.save(f"data/{dir}/worst_boards", worst_boards)
+            np.save(f"data/{dir}/best_boards", best_boards)
         npg.show(i, min_opt, max_opt)
 
 
-width, height = 100, 100
+w, h = 100, 100
+w2, h2 = w // 2, h // 2
 npg.start_board(
-    width=width,
-    height=height,
+    width=w,
+    height=h,
 )
 
-# --
-negentropy = NumberOfCells([0, 0, 0, 0], [0, 0, width, height])
-save_best_worst(0, "num_cells/best_worst", negentropy, load=False)
-# --
+# -- Experiment 1
+
+# negentropy = NumberOfCells([0, 0, 0, 0], [0, 0, width, height])
+# save_best_worst(0, "num_cells/best_worst", negentropy, mem_size=100, save_round=500)
 
 # --
-# negentropy = NumberOfCells([0, 0, width//2, height], [width//2+1, 0, width//2, height])
-# save_best_worst(0, "/best_worst", negentropy)
+
+
+# -- Experiment 2
+
+# negentropy = NumberOfCells([0, 0, w2, h], [w2, 0, w2, h])
+negentropy = load_negentropy("left_right_w100h100")
+save_best_worst("num_cells_left_right", negentropy, mem_size=100, save_round=500)
+
 # --

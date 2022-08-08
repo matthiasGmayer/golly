@@ -9,12 +9,18 @@ logging.basicConfig(filename=logging_file)
 logging.getLogger().setLevel(logging.INFO)
 
 
+def get_step():
+    return g.getstep()
+
+
 def show(*to_show, sep=" "):
     g.show(sep.join(str(s) for s in to_show))
 
 
 def log(string):
     logging.info(string)
+    print(string)
+    show(string)
 
 
 def set_logging_file(file):

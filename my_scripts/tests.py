@@ -53,5 +53,12 @@ def plot_all_kolmogorov(width, height):
     plt.show()
 
 
-plot_all_kolmogorov(4, 3)
+def test_pos_neg_negentropy():
+    w, h = 100, 100
+    w2, h2 = w // 2, h // 2
+    negentropy = NumberOfCells([0, 0, w2, h], [w2, 0, w2, h])
+
+
+# plot_all_kolmogorov(4, 3)
 # test_kolmogorov()
+test_pos_neg_negentropy()
