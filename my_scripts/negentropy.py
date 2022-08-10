@@ -4,6 +4,7 @@ import copy
 import pickle
 import npg
 import zlib
+import compression
 from collections import defaultdict
 
 
@@ -36,28 +37,45 @@ class Negentropy:
         self.saved_board = copy.deepcopy(board)
 
     def get_number_states(self, board):
+        """to implement in subclass"""
         pass
 
     def __getitem__(self, board):
+        """
+        Calculates the negentropy of a board
+        """
         num_states = self.get_number_states(board)
         return self.num_cells - math.log2(num_states)
 
     def save(self, name):
+        """
+        save this negentropy object to data/negentropies/{name}
+        """
         fname = f"data/negentropies/{name}"
         with open(fname, "wb+") as file:
             pickle.dump(self, file)
 
 
-def load_negentropy(name):
+def load(name):
+    """
+    load a negentropy from data/negentropies/{name}
+    """
     fname = f"data/negentropies/{name}"
     with open(fname, "rb") as file:
         obj = pickle.load(file)
     return obj
 
 
-# All have uniform distribution
 class Kolmogorov(Negentropy):
+    """
+    Define a negentropy by using the Kolmogorov complexity as a loss function.
+    The Kolmogorov complexity is approximated by a compression algorithm (compression.py)
+    """
+
     def board_to_bytes(self, board):
+        """
+        function to convert the board to bytes to use gzip on.
+        """
         # board = board.reshape(-1)
         # board = np.concatenate((board, np.zeros((-len(board) % 8), dtype="int32")))
         # board = board.reshape((-1, 8))
@@ -70,23 +88,37 @@ class Kolmogorov(Negentropy):
         return bytes
 
     def compression_length(self, board):
-        bin = self.board_to_bytes(board)
-        compressed = zlib.compress(bin)
-        return len(compressed) - self.baseline
+        """
+        returns the compression length of the board with compression.py
+        """
+        # bin = self.board_to_bytes(board)
+        # compressed = zlib.compress(bin)
+        # return len(compressed)
+        compressed = compression.compress(board.reshape((-1)))
+        return len(compressed)
 
-    def __init__(self, width, height) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        board = npg.get_board_from_int(0, width, height)
-        bin = self.board_to_bytes(board)
-        compressed = zlib.compress(bin)
-        self.baseline = len(compressed)
 
     def get_number_states(self, board):
-        pass
+        """
+        estimate the number of boards with less compression length by assuming every bit is mapped
+        """
+        c = self.compression_length(board)
+        return 2 ** (c + 1) - 1
 
 
 class NumberOfCells(Negentropy):
+    """
+    Define a negentropy by using a utility function.
+    Every alive cell in the positive area gives 1 utility.
+    Every alive cell in the negative are gives -1 utility.
+    """
+
     def get_distribution(self, n):
+        """
+        returns [n choose k for k in range(n+1)]
+        """
         last = 1
         cum = [last]
         for k in range(1, n + 1):
@@ -98,6 +130,8 @@ class NumberOfCells(Negentropy):
         """
         rect = [x0,y0,width,height]
         utility(state) = sum(positive_area) - sum(negative_area) where area is the np_array with 1's for alive
+        This takes a long time to initalize!
+        Consider saving and loading the negentropy.
         """
         super().__init__()
         self.positive_rect = positive_rect
@@ -107,21 +141,6 @@ class NumberOfCells(Negentropy):
         pos_distr = self.get_distribution(pos_size)
         neg_distr = self.get_distribution(neg_size)
 
-        # does not work bc if one log is 0, that propagates.
-
-        # pos_logs = np.array([math.log2(x) for x in pos_distr])
-        # neg_logs = np.array([math.log2(x) for x in neg_distr])
-        # mults = pos_logs * neg_logs[:, None]
-        # logs = {
-        #     offset: np.product(np.diagonal(mults, offset))
-        #     for offset in range(-neg_size, pos_size + 1)
-        # }
-        # cum_logs = np.cumprod(logs)
-        # self.util_to_log_num_states = cum_logs
-        # print(self.util_to_log_num_states)
-        # self.util_offset = neg_size
-
-        # too slow
         d = defaultdict(int)
         for pi, p in enumerate(pos_distr):
             npg.log(f"{pi}/{len(pos_distr)}")
@@ -138,14 +157,11 @@ class NumberOfCells(Negentropy):
             cum[i] = cum[i + 1] + d[i]
         self.util_to_num_states = cum
 
-    # def __getitem__(self, board):
-    #     sup = super().__getitem__(board)
-    #     util = self.get_util(board)
-    #     sup2 = self.num_cells - self.util_to_log_num_states[util + self.util_offset]
-    #     npg.log(sup - sup2)
-    #     return sup2
-
     def get_util(self, board):
+        """
+        return the utility of the board
+        """
+
         def get_sub_board(b, x, y, w, h):
             return b[x : x + w, y : y + h]
 

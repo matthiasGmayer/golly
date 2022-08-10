@@ -9,15 +9,21 @@ logging.basicConfig(filename=logging_file)
 logging.getLogger().setLevel(logging.INFO)
 
 
-def get_step():
-    return g.getstep()
+get_step = g.getstep
+step = g.step
 
 
 def show(*to_show, sep=" "):
+    """
+    Show the arguments in the golly info line
+    """
     g.show(sep.join(str(s) for s in to_show))
 
 
 def log(string):
+    """
+    print the string to the command line/logging file and golly info line
+    """
     logging.info(string)
     print(string)
     show(string)
@@ -71,15 +77,14 @@ def get_board():
 
 
 def get_pop():
+    """
+    Get the current population on the board as int
+    """
     return int(g.getpop())
 
 
-def get_width():
-    return g.getwidth()
-
-
-def get_height():
-    return g.getheight()
+get_width = g.getwidth
+get_height = g.getheight
 
 
 def get_shape():
@@ -108,8 +113,10 @@ def get_all_boards(width, height):
         yield (get_board_from_int(i, width, height))
 
 
-# rule = f"b3/s23:P{width},{height}"
 def start_board(name="optimization", width="", height="", rule="b3/s23", border="P"):
+    """
+    See golly help to see how to set a rule.
+    """
     if rule != "" and width != "" != height:
         rule = f"{rule}:{border}{width},{height}"
     g.setrule(rule)

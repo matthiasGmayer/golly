@@ -18,6 +18,11 @@ import golly as g
 def save_best_worst(
     dir, negentropy: Negentropy, mem_size=10, load=True, save_round=100
 ):
+    """
+    runs random board configurations until convergence.
+    keep the best and worst 'mem_size' boards and optimization in memory
+    all 'save_round' rounds, save them to data/{dir}/...
+    """
     i = 0
     min_opt = max_opt = None, None
     if load and os.path.exists(f"data/{dir}/best_opts.npy"):
@@ -68,6 +73,20 @@ def save_best_worst(
         npg.show(i, min_opt, max_opt)
 
 
+def save_run_negentropy(negentropy: Negentropy, dir, boards):
+    """
+    for board in boards: run board until convergence and save the optimization at each step in data/{dir}/{board_index}
+    """
+    os.makedirs(f"data/{dir}", exist_ok=True)
+    for i, board in enumerate(boards):
+        negentropies = []
+        npg.set_board(board)
+        run_until_converge(negentropy, on_run=negentropies.append)
+        np.save(f"data/{dir}/{i}", negentropies)
+
+        npg.show(f"{i+1}/{len(boards)}")
+
+
 w, h = 100, 100
 w2, h2 = w // 2, h // 2
 npg.start_board(
@@ -77,7 +96,7 @@ npg.start_board(
 
 # -- Experiment 1
 
-# negentropy = NumberOfCells([0, 0, 0, 0], [0, 0, width, height])
+# negentropy = NumberOfCells([0, 0, 0, 0], [0, 0, w, h])
 # save_best_worst(0, "num_cells/best_worst", negentropy, mem_size=100, save_round=500)
 
 # --
@@ -86,7 +105,47 @@ npg.start_board(
 # -- Experiment 2
 
 # negentropy = NumberOfCells([0, 0, w2, h], [w2, 0, w2, h])
-negentropy = load_negentropy("left_right_w100h100")
-save_best_worst("num_cells_left_right", negentropy, mem_size=100, save_round=500)
+
+# negentropy = load_negentropy("left_right_w100h100")
+# save_best_worst("num_cells_left_right", negentropy, mem_size=100, save_round=500)
 
 # --
+
+os.makedirs("num_cells/board_runs", exist_ok=True)
+
+# -- Experiment 3
+# negentropy = NumberOfCells([0, 0, 0, 0], [0, 0, w, h])
+# save_run_negentropy(
+#     negentropy,
+#     "num_cells/board_runs",
+#     [(np.random.random((w, h)) > 1 / 2) + 0 for _ in range(1000)],
+# )
+
+negentropy = Kolmogorov(w, h)
+save_run_negentropy(
+    negentropy,
+    "kolmogorov/board_runs",
+    [(np.random.random((w, h)) > 1 / 2) + 0 for _ in range(1000)],
+)
+
+
+# -- Experiment 4,  the first step of optimization is approximately 4000 bits.
+# negentropy = NumberOfCells([0, 0, 0, 0], [0, 0, w, h])
+# for i in range(100):
+#     npg.fill_board_with_density(1 / 2)
+#     negentropy.save_board()
+#     g.run(2**5)
+#     npg.log(negentropy.get_optimization())
+
+os.makedirs("data/kolmogorov/compression_runs", exist_ok=True)
+
+# negentropy = Kolmogorov(w, h)
+# for i in range(100):
+#     npg.fill_board_with_density(1 / 2)
+#     l = []
+#     for j in range(1000):
+#         npg.step()
+#         c = negentropy.compression_length(npg.get_board())
+#         l.append(c)
+#         npg.log(c)
+#     np.save(f"data/kolmogorov/compression_runs/{i}", l)

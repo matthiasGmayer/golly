@@ -2,8 +2,9 @@ from matplotlib import pyplot as plt
 from scipy import interpolate, optimize
 import numpy as np
 import os
+from glob import glob
 
-data = "random_negentropies"
+data = "num_cells/random_negentropies"
 # data = "ending_populations"
 data_file = f"data/{data}.dat"
 # os.makedirs("plots")
@@ -62,5 +63,22 @@ def interpolation_pdf():
     plt.show()
 
 
-interpolation_pdf()
+def plot_curves(dir, n=3, subplots=(1, 1)):
+    xn, yn = subplots
+    if xn == yn == 1:
+        ax = [[plt]]
+    else:
+        fig, ax = plt.subplots(xn, yn)
+    curves = [np.load(s) for s in glob(f"{dir}/*")[: n * xn * yn]]
+    for x in range(xn):
+        for y in range(yn):
+            idx = (x * yn + y) * n
+            for curve in curves[idx : idx + n]:
+                ax[x][y].plot(range(len(curve)), curve)
+    plt.show()
+
+
+# plot_curves("data/num_cells/board_runs", subplots=(3, 3))
+plot_curves("data/kolmogorov/compression_runs", n=5)
+# interpolation_pdf()
 # histogram()

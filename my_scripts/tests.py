@@ -39,17 +39,26 @@ def test_kolmogorov():
 
 
 def plot_all_kolmogorov(width, height):
+    npg.start_board(width=width, height=height)
     negentropy = Kolmogorov(width, height)
     boards = [
-        print(f"{i}/{2**25}") or b
+        print(f"{i+1}/{2**(width*height)}") or b
         for i, b in enumerate((npg.get_all_boards(width, height)))
     ]
-    print(len(boards))
-    compressed_lengths = sorted([negentropy.compression_length(b) for b in boards])
-    plt.hist([x * 8 for x in compressed_lengths])
-    x = range(max(compressed_lengths))
-    y = [2**i for i in x]
-    plt.plot(x, y)
+    compressed_lengths = []
+    for b in boards:
+        npg.set_board(b)
+        compressed_lengths.append(negentropy.compression_length(b.reshape(-1)))
+        for i in range(1000):
+            npg.step()
+            compressed_lengths.append(
+                negentropy.compression_length(npg.get_board().reshape(-1))
+            )
+
+    plt.hist(compressed_lengths)
+    # x = range(max(compressed_lengths))
+    # y = [2**i for i in x]
+    # plt.plot(x, y)
     plt.show()
 
 
@@ -59,6 +68,6 @@ def test_pos_neg_negentropy():
     negentropy = NumberOfCells([0, 0, w2, h], [w2, 0, w2, h])
 
 
-# plot_all_kolmogorov(4, 3)
+plot_all_kolmogorov(4, 4)
 # test_kolmogorov()
-test_pos_neg_negentropy()
+# test_pos_neg_negentropy()
